@@ -7,7 +7,9 @@
   ],
   "allowed": [
     "org-event.github.io",
+    "github.com",
     "ya.ru",
+    "yandex.ru",
     "google.com",
     "phind.com"
   ]
