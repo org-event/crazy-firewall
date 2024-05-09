@@ -2,11 +2,12 @@
   "users": [
     "irina",
     "event",
-    "org-event"
+    "org-event",
+    "IVAN"
   ],
   "allowed": [
+    "org-event.github.io",
     "ya.ru",
-    "developer.mozilla.org",
     "google.com",
     "phind.com"
   ]
