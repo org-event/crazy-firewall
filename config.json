@@ -1,0 +1,12 @@
+{
+  "users": [
+    "irina",
+    "event",
+    "org-event"
+  ],
+  "allowed": [
+    "ya.ru",
+    "developer.mozilla.org",
+    "google.com"
+  ]
+}
