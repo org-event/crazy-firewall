@@ -7,6 +7,7 @@
   "allowed": [
     "ya.ru",
     "developer.mozilla.org",
-    "google.com"
+    "google.com",
+    "phind.com"
   ]
 }
