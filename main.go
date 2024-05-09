@@ -38,8 +38,10 @@ func fetchConfig() {
 			continue
 		}
 
-		body, err := ioutil.ReadAll(resp.Body) // Чтение тела ответа
-		resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)      // Чтение тела ответа
+		if cerr := resp.Body.Close(); cerr != nil { // Немедленное закрытие тела ответа
+			log.Printf("Не удалось закрыть тело ответа: %v", cerr)
+		}
 		if err != nil {
 			log.Printf("Не удалось прочитать тело ответа: %v", err)
 			time.Sleep(updateInterval)
@@ -67,14 +69,32 @@ func fetchConfig() {
 	}
 }
 
-// Проверяет, разрешен ли сайт
-func isBlockedSite(request string, blockedSites []string) bool {
-	for _, site := range blockedSites {
-		if strings.Contains(request, site) {
-			return true
+// Проверяет, разрешен ли сайт, включая субдомены
+func isBlockedSite(request string, allowedSites []string) bool {
+	requestDomain := extractDomain(request)
+	for _, site := range allowedSites {
+		if requestDomain == site || strings.HasSuffix(requestDomain, "."+site) {
+			return true // Возвращается true, если запрос соответствует одному из разрешенных доменов или его субдоменам
 		}
 	}
 	return false
+}
+
+// Извлекает домен из URL запроса
+func extractDomain(request string) string {
+	// Обычно URL запроса приходит в формате `subdomain.domain.com:port`
+	// Удалить порт, если он есть
+	if idx := strings.Index(request, ":"); idx != -1 {
+		request = request[:idx]
+	}
+	// Проверить наличие поддоменов и отрезать их
+	if idx := strings.LastIndex(request, "."); idx != -1 {
+		secondIdx := strings.LastIndex(request[:idx], ".")
+		if secondIdx != -1 {
+			request = request[secondIdx+1:]
+		}
+	}
+	return request
 }
 
 // Проверяет, разрешен ли пользователь делать запросы
@@ -89,9 +109,13 @@ func isUserAllowed(username string, allowedUsers []string) bool {
 
 // Обрабатывает каждое подключение
 func handleConnection(src net.Conn) {
-	defer src.Close()
+	defer func() {
+		if err := src.Close(); err != nil {
+			log.Printf("Ошибка при закрытии соединения: %v", err)
+		}
+	}()
 
-	username := strings.ToLower(os.Getenv("USERNAME")) // Получение имени пользователя в нижнем регистру
+	username := strings.ToLower(os.Getenv("USERNAME"))
 	configLock.RLock()
 	blockedSites := config.Allowed
 	allowedUsers := config.Users
@@ -118,11 +142,29 @@ func handleConnection(src net.Conn) {
 			log.Printf("Не удалось соединиться с назначением: %v", err)
 			return
 		}
-		defer dst.Close()
+		defer func() {
+			if err := dst.Close(); err != nil {
+				log.Printf("Ошибка при закрытии целевого соединения: %v", err)
+			}
+		}()
 
-		src.Write([]byte("HTTP/1.1 200 Connection established\r\n\r\n"))
-		go io.Copy(dst, src)
-		io.Copy(src, dst)
+		// Отправляет клиенту подтверждение установки соединения
+		if _, err := src.Write([]byte("HTTP/1.1 200 Connection established\r\n\r\n")); err != nil {
+			log.Printf("Ошибка при отправке подтверждения соединения: %v", err)
+			return
+		}
+
+		// Начинает асинхронное копирование данных от клиента к серверу
+		go func() {
+			if _, err := io.Copy(dst, src); err != nil {
+				log.Printf("Ошибка при копировании данных к серверу: %v", err)
+			}
+		}()
+
+		// Копирует данные от сервера к клиенту
+		if _, err := io.Copy(src, dst); err != nil {
+			log.Printf("Ошибка при копировании данных к клиенту: %v", err)
+		}
 	}
 }
 
