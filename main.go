@@ -131,8 +131,8 @@ func handleConnection(src net.Conn) {
 	request := string(buffer[:n])
 	if strings.HasPrefix(request, "CONNECT") {
 		destination := request[len("CONNECT "):strings.Index(request, " HTTP/")]
-		if !isUserAllowed(username, allowedUsers) || !isBlockedSite(destination, blockedSites) {
-			log.Printf("Запрос заблокирован: %s", destination)
+		if isUserAllowed(username, allowedUsers) && !isBlockedSite(destination, blockedSites) {
+			log.Printf("Запрос заблокирован: %s", destination, username, allowedUsers, " работа ", isUserAllowed(username, allowedUsers))
 			return
 		}
 
