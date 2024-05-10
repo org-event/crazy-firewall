@@ -2,8 +2,7 @@
   "users": [
     "irina",
     "event",
-    "org-event",
-    "IVAN"
+    "org-event"
   ],
   "allowed": [
     "org-event.github.io",
