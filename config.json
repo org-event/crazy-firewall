@@ -2,8 +2,7 @@
   "users": [
     "irina",
     "event",
-    "org-event",
-    "ivaN"
+    "org-event"
   ],
   "allowed": [
     "github.io",
@@ -15,6 +14,7 @@
     "google.com",
     "google.ru",
     "gstatic.com",
-    "gismeteo.ru"
+    "gismeteo.ru",
+    "wikipedia.org"
   ]
 }
