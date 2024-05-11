@@ -77,17 +77,6 @@ func fetchConfig() {
 	}
 }
 
-// Проверяет, разрешен ли сайт, включая субдомены
-func isSiteAllowed(request string, allowedSites []string) bool {
-	requestDomain := extractDomain(request)
-	for _, site := range allowedSites {
-		if requestDomain == site || strings.HasSuffix(requestDomain, "."+site) {
-			return true // Возвращается true, если запрос соответствует одному из разрешенных доменов или его субдоменам
-		}
-	}
-	return false
-}
-
 // Извлекает домен из URL запроса
 func extractDomain(request string) string {
 	// Обычно URL запроса приходит в формате `subdomain.domain.com:port`
@@ -103,6 +92,17 @@ func extractDomain(request string) string {
 		}
 	}
 	return request
+}
+
+// Проверяет, разрешен ли сайт, включая субдомены
+func isSiteDisallow(request string, allowedSites []string) bool {
+	requestDomain := extractDomain(request)
+	for _, site := range allowedSites {
+		if requestDomain == site || strings.HasSuffix(requestDomain, "."+site) {
+			return false // Возвращается false, если запрос соответствует одному из доменов или его субдоменам
+		}
+	}
+	return true
 }
 
 // Проверяет, разрешен ли пользователь делать запросы
@@ -125,7 +125,7 @@ func handleConnection(src net.Conn) {
 
 	username := strings.ToLower(os.Getenv("USERNAME"))
 	configLock.RLock()
-	blockedSites := config.Allowed
+	allowedSitesArray := config.Allowed
 	allowedUsers := config.Users
 	configLock.RUnlock()
 
@@ -139,8 +139,17 @@ func handleConnection(src net.Conn) {
 	request := string(buffer[:n])
 	if strings.HasPrefix(request, "CONNECT") {
 		destination := request[len("CONNECT "):strings.Index(request, " HTTP/")]
-		if isUserAllowed(username, allowedUsers) && !isSiteAllowed(destination, blockedSites) {
-			logger("Запрос заблокирован: %s", destination)
+
+		if isUserAllowed(username, allowedUsers) && isSiteDisallow(destination, allowedSitesArray) {
+			logger(
+				"Запрос: %s",
+				destination,
+				"Пользователь ",
+				username,
+				"Пользователь в списке",
+				isUserAllowed(username, allowedUsers),
+				"сайт запрещен",
+				isSiteDisallow(destination, allowedSitesArray))
 			return
 		}
 
