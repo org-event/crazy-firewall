@@ -22,7 +22,7 @@ func logger(format string, v ...interface{}) {
 func init() {
 	if logOutFile {
 		// Проверяем и создаем директорию, если необходимо
-		if err := os.MkdirAll(logPath[:len(logPath)-len("crazyFirewall.log")], os.ModePerm); err != nil {
+		if err := os.MkdirAll(logPath[:len(logPath)-len("server.log")], os.ModePerm); err != nil {
 			log.Fatal("Не удалось создать директории для файла лога:", err)
 		}
 
