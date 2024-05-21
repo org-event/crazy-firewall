@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	debugging  = false                           // Если true, сообщения выводятся в консоли
+	debugging  = true                            // Если true, сообщения выводятся в консоли
 	logOutFile = false                           // Если true, вывод в файл
 	logPath    = "C:\\crazyFirewall\\server.log" // Куда будем логировать
 )

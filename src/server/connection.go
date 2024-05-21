@@ -4,45 +4,46 @@ import (
 	"bufio"
 	"io"
 	"net"
+	"os"
 	"strings"
 )
 
 // Извлекает домен из URL запроса
 func extractDomain(request string) string {
-	// Обычно URL запроса приходит в формате `subdomain.domain.com:port`
 	// Удалить порт, если он есть
 	if idx := strings.Index(request, ":"); idx != -1 {
 		request = request[:idx]
-	}
-	// Проверить наличие поддоменов и отрезать их
-	if idx := strings.LastIndex(request, "."); idx != -1 {
-		secondIdx := strings.LastIndex(request[:idx], ".")
-		if secondIdx != -1 {
-			request = request[secondIdx+1:]
-		}
 	}
 	return request
 }
 
 // Проверяет, разрешен ли сайт, включая суб-домены
-func isSiteDisallow(request string, allowedSites []string) bool {
+func isSiteAllowed(request string, allowedSites []string) bool {
 	requestDomain := extractDomain(request)
 	for _, site := range allowedSites {
 		if requestDomain == site || strings.HasSuffix(requestDomain, "."+site) {
-			return false // Возвращается false, если запрос соответствует одному из доменов или его субдоменам
+			return true // Возвращается true, если запрос соответствует одному из доменов или его субдоменам
 		}
 	}
-	return true
+	return false
 }
 
 // Проверяет, разрешен ли пользователь делать запросы
 func isUserAllowed(username string, allowedUsers []string) bool {
 	for _, user := range allowedUsers {
-		if username == user {
+		if username == strings.ToLower(user) {
 			return true
 		}
 	}
 	return false
+}
+
+func getWindowsUsername() string {
+	username := os.Getenv("USERNAME")
+	if username == "" {
+		return "Не удалось определить имя пользователя"
+	}
+	return strings.ToLower(username)
 }
 
 // Обрабатывает каждое подключение
@@ -53,7 +54,7 @@ func handleConnection(src net.Conn) {
 		}
 	}()
 
-	username := currentUser
+	username := getWindowsUsername()
 	configLock.RLock()
 	allowedSitesArray := config.Allowed
 	allowedUsers := config.Users
@@ -70,20 +71,34 @@ func handleConnection(src net.Conn) {
 	if strings.HasPrefix(request, "CONNECT") {
 		destination := request[len("CONNECT "):strings.Index(request, " HTTP/")]
 
-		if isUserAllowed(username, allowedUsers) && isSiteDisallow(destination, allowedSitesArray) {
-			logger(
-				"Запрос: %s",
+		// Измененная логика: если пользователь не разрешен, позволяет доступ ко всем сайтам
+		if isUserAllowed(username, allowedUsers) {
+			// Если пользователь в списке разрешенных
+			if isSiteAllowed(destination, allowedSitesArray) {
+				// Сайт разрешен для данного пользователя
+				logger("Запрос: %s\nПользователь: %s\nПользователь в списке: %v\nСайт разрешен: %v",
+					destination,
+					username,
+					true,
+					true)
+			} else {
+				// Сайт не разрешен для данного пользователя
+				logger("Запрос: %s\nПользователь: %s\nПользователь в списке: %v\nСайт разрешен: %v",
+					destination,
+					username,
+					true,
+					false)
+				return
+			}
+		} else {
+			// Пользователь не в списке разрешенных, доступ ко всем сайтам
+			logger("Запрос: %s\nПользователь: %s\nПользователь в списке: %v\nСайт разрешен: %v",
 				destination,
-				"Пользователь ",
 				username,
-				"Пользователь в списке",
-				isUserAllowed(username, allowedUsers),
-				"сайт запрещен",
-				isSiteDisallow(destination, allowedSitesArray))
-			return
+				false,
+				true)
 		}
 
-		logger("Запрос разрешен: %s", destination)
 		dst, err := net.Dial("tcp", destination)
 		if err != nil {
 			logger("Не удалось соединиться с назначением: %v", err)
@@ -124,7 +139,7 @@ func handleConnectionSocket(conn net.Conn) {
 	reader := bufio.NewReader(conn)
 	username, err := reader.ReadString('\n')
 	if err != nil {
-		logger("Failed to read from connection: %v", err)
+		logger("Ошибка чтения из соединения: %v", err)
 		return
 	}
 	username = strings.TrimSpace(username)
@@ -134,5 +149,5 @@ func handleConnectionSocket(conn net.Conn) {
 	activeUsers[username] = true
 	lock.Unlock()
 
-	logger("Registered active user: %s", username)
+	logger("Зарегистрирован активный пользователь: %s", username)
 }
