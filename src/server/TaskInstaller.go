@@ -35,7 +35,7 @@ func createTask(name, command string) error {
 
 	task := Task{
 		Version: "1.2",
-		XMLNS:   "http://schemas.microsoft.com/windows/2004/02/mit/task",
+		XMLName: xml.Name{Space: "http://schemas.microsoft.com/windows/2004/02/mit/task", Local: "Task"},
 		RegistrationInfo: RegistrationInfo{
 			Date:        currentTime,
 			Author:      username,
@@ -73,14 +73,7 @@ func createTask(name, command string) error {
 			},
 		},
 		Triggers: Triggers{
-			Trigger: []Trigger{
-				{
-					LogonTrigger: LogonTrigger{
-						Enabled: true,
-						Delay:   "PT10S",
-					},
-				},
-			},
+			LogonTrigger: struct{}{}, // Пустая структура для LogonTrigger
 		},
 		Actions: Actions{
 			Context: "Author",
@@ -132,7 +125,7 @@ func taskExists(name string) bool {
 
 func taskInstaller() {
 	if !taskExists("crazyFirewallServer") {
-		if err := createTask("crazyFirewallServer", `C:\\Program Files\\crazyfirewall\\crazyFirewallServer.exe`); err != nil {
+		if err := createTask("crazyFirewallServer", `C:\Program Files\crazyfirewall\crazyFirewallServer.exe`); err != nil {
 			logger("Error creating server task: %v", err)
 		} else {
 			logger("Server task created successfully.")
@@ -142,7 +135,7 @@ func taskInstaller() {
 	}
 
 	if !taskExists("crazyFirewallClient") {
-		if err := createTask("crazyFirewallClient", `C:\\Program Files\\crazyfirewall\\crazyFirewallClient.exe`); err != nil {
+		if err := createTask("crazyFirewallClient", `C:\Program Files\crazyfirewall\crazyFirewallClient.exe`); err != nil {
 			logger("Error creating client task: %v", err)
 		} else {
 			logger("Client task created successfully.")

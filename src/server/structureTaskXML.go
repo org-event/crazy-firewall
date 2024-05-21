@@ -37,23 +37,13 @@ type Principals struct {
 	Principal Principal `xml:"Principal"`
 }
 
-type LogonTrigger struct {
-	Enabled bool   `xml:"Enabled"`
-	Delay   string `xml:"Delay,omitempty"` // Опционально, задержка перед запуском
-}
-
-type Trigger struct {
-	LogonTrigger LogonTrigger `xml:"LogonTrigger"`
-}
-
 type Triggers struct {
-	Trigger []Trigger `xml:"Trigger"`
+	LogonTrigger struct{} `xml:"LogonTrigger"`
 }
 
 type Task struct {
 	XMLName          xml.Name         `xml:"http://schemas.microsoft.com/windows/2004/02/mit/task Task"`
 	Version          string           `xml:"version,attr"`
-	XMLNS            string           `xml:"xmlns,attr"`
 	RegistrationInfo RegistrationInfo `xml:"RegistrationInfo"`
 	Principals       Principals       `xml:"Principals"`
 	Settings         Settings         `xml:"Settings"`
